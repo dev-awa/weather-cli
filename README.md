@@ -170,6 +170,22 @@ Colorama 0.4.6 Colored terminal output
 
 ---
 
+## 🔮 Future Improvements
+
+Here are some ideas to take this project to the next level:
+
+- [ ] **5-Day Forecast** – Add support for `/forecast` endpoint
+- [ ] **Notification Alerts** – Notify users of sudden weather changes
+- [ ] **History Log** – Save search history locally
+- [ ] **Web Version** – Build a simple Flask/FastAPI web interface
+- [ ] **Docker Support** – Containerize the application
+- [ ] **More Weather Details** – Add sunrise/sunset, pressure, visibility, etc.
+- [ ] **Export Reports** – Save weather data as CSV or JSON file
+
+> 💡 Have an idea? Feel free to **fork** the repo and submit a Pull Request!
+
+---
+
 🤝 Contributing
 
 Contributions are welcome! Here's how you can help:
