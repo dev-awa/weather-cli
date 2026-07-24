@@ -2,6 +2,7 @@ import requests
 import os
 from dotenv import load_dotenv
 import click
+from src.cache_manager import get_cache, save_cache
 
 #===============================================
 # LOAD ENVIRONMENT VARIABLES
@@ -18,56 +19,74 @@ if not API_KEY:
     exit(1)
 
 #===============================================
-# CLI COMMAND WITH CLICK
+# CLI COMMAND WITH CACHE
 #===============================================
-# @click.command() mekes this function a CLI command
-# @click.option() adds command-line options
-# --city: city name (default: Tehran)
-# --units: metric or imperial (default: metric)
 @click.command()
 @click.option('--city', default='Tehran', help='City name to get weather for')
 @click.option('--units', default='metric', help='Units: metric or imperial')
-def get_weather(city, units):
+@click.option('--force', is_flag=True, help='Force refresh (ignore cache)')
+def get_weather(city, units, force):
     """
-    Get current weather for a city.
+    Get current weather for a city with caching.
     
-    This function is called when the user runs the script.
-    It takes city and units as parameters from command line. 
+    --force: Ignores cache and fetches fresh data from API 
     """
 
     #===========================================
-    # BUILD URL WITH PARAMETERS
+    # CHECK CACHE FIRST
+    #===========================================
+    # If --force is NOT used, try to get cached data
+    if not force:
+        cached_data = get_cache(city)
+        if cached_data:
+            # Found valid cached data, display it
+            display_weather(cached_data, city, from_cache=True)
+            return
+
+    #===========================================
+    # FETCH FROM API (CACHE MISS OR FORCE)
     #===========================================
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units={units}"
     
-    #===============================================
-    # SEND HTTP REQUEST TO API
-    #===============================================
     try:
         response = requests.get(url)
         data = response.json()
     
-        #===============================================
-        # CHECK RESPONSE STATUS
-        #===============================================
         if response.status_code == 200:
-            # Display weather data
-            # click.echo() is like print() but works better with CLI
-            click.echo(f"City: {data['name']}, {data['sys']['country']}")
-            click.echo(f"Temp: {data['main']['temp']}°C")
-            click.echo(f"Feels like: {data['main']['feels_like']}°C")
-            click.echo(f"Weather: {data['weather'][0]['description']}")
-            click.echo(f"Humidity: {data['main']['humidity']}%")
-            click.echo(f"Wind: {data['wind']['speed']} km/h")
+            # Save to cache for future use
+            save_cache(city, data)
+            display_weather(data, city, from_cache=False)    
         else:
-            click.echo(f"Error: {data.get('message', 'Unknown error')}")
-
+            click.echo(f"❌ Error: {data.get('message', 'Unknown error')}")
+            
     except Exception as e:
-        print(f"Connection error: {e}")
+        click.echo(f"❌ Connection error: {e}")
+
+#=======================================================
+# DISPLAY WEATHER DATA
+#=======================================================
+def display_weather(data, city, from_cache=False):
+    """
+    Display weather data in a nice format.
+    
+    Args:
+        data (dict): Weather data from API or cache
+        city (str): City name
+        from_cache (bool): True if data came from cache
+    """
+    
+    # Add indicator if data is from cache
+    cache_msg = " (from cache)" if from_cache else ""
+    
+    click.echo(f"City: {data['name']}, {data['sys']['country']}{cache_msg}")
+    click.echo(f"Temp: {data['main']['temp']}°C")
+    click.echo(f"Feels like: {data['main']['feels_like']}°C")
+    click.echo(f"Weather: {data['weather'][0]['description']}")
+    click.echo(f"Humidity: {data['main']['humidity']}%")
+    click.echo(f"Wind: {data['wind']['speed']} km/h")
 
 #=======================================================
 # ENTRY POINT
 #=======================================================
-# This runs the get_weather() function when script is executed
 if __name__ == "__main__":
     get_weather()
