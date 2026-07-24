@@ -1,0 +1,1 @@
+print("Weather CLI is ready!")
