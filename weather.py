@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 from dotenv import load_dotenv
 
 #===============================================
@@ -21,15 +22,19 @@ if not API_KEY:
     exit(1)
 
 #===============================================
-# SET CITY AND BUILD URL
+# GET CITY FROM COMMAND LINE
 #===============================================
-# City name to get weather for
-city = "Tehran"
+# sys.args is a list of command line arguments
+# sys.argv[0] is the script name (weather.py)
+# sys.argv[1] is the first argument (city name)
+if len(sys.argv) > 1:
+    city = sys.argv[1] # Use city from command line
+else:
+    city = "Tehran"    # Default city if no argument
 
-# Build the API URL with:
-# - city name
-# - API key
-# -units=metric (Celsius)
+#===============================================
+# BUILD URL WITH CITY
+#===============================================
 url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
 
 #===============================================
