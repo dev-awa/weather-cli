@@ -3,90 +3,90 @@ import os
 from dotenv import load_dotenv
 import click
 from src.cache_manager import get_cache, save_cache
+from colorama import init, Fore, Style
 
-#===============================================
+# ============================================
+# INITIALIZE COLORAMA
+# ============================================
+# init() enables color support on Windows
+init(autoreset=True)
+
+# ============================================
 # LOAD ENVIRONMENT VARIABLES
-#===============================================
+# ============================================
 load_dotenv()
 
-#===============================================
-# Get API KEY
-#===============================================
+# ============================================
+# GET API KEY
+# ============================================
 API_KEY = os.getenv('API_KEY')
 
 if not API_KEY:
-    print("Error: API_KEY not found")
+    print("❌ Error: API_KEY not found")
     exit(1)
 
-#===============================================
-# CLI COMMAND WITH CACHE
-#===============================================
+# ============================================
+# CLI COMMAND WITH CACHE AND COLORS
+# ============================================
 @click.command()
 @click.option('--city', default='Tehran', help='City name to get weather for')
 @click.option('--units', default='metric', help='Units: metric or imperial')
 @click.option('--force', is_flag=True, help='Force refresh (ignore cache)')
 def get_weather(city, units, force):
     """
-    Get current weather for a city with caching.
-    
-    --force: Ignores cache and fetches fresh data from API 
+    Get current weather for a city with caching and colored output.
     """
-
-    #===========================================
-    # CHECK CACHE FIRST
-    #===========================================
-    # If --force is NOT used, try to get cached data
+    
+    # Check cache first
     if not force:
         cached_data = get_cache(city)
         if cached_data:
-            # Found valid cached data, display it
             display_weather(cached_data, city, from_cache=True)
             return
-
-    #===========================================
-    # FETCH FROM API (CACHE MISS OR FORCE)
-    #===========================================
+    
+    # Fetch from API
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units={units}"
     
     try:
         response = requests.get(url)
         data = response.json()
-    
+        
         if response.status_code == 200:
-            # Save to cache for future use
             save_cache(city, data)
-            display_weather(data, city, from_cache=False)    
+            display_weather(data, city, from_cache=False)
         else:
-            click.echo(f"❌ Error: {data.get('message', 'Unknown error')}")
+            # Red color for errors
+            click.echo(f"{Fore.RED}❌ Error: {data.get('message', 'Unknown error')}")
             
     except Exception as e:
-        click.echo(f"❌ Connection error: {e}")
+        click.echo(f"{Fore.RED}❌ Connection error: {e}")
 
-#=======================================================
-# DISPLAY WEATHER DATA
-#=======================================================
+# ============================================
+# DISPLAY WEATHER DATA WITH COLORS
+# ============================================
 def display_weather(data, city, from_cache=False):
     """
-    Display weather data in a nice format.
+    Display weather data in a nice format with colors.
     
-    Args:
-        data (dict): Weather data from API or cache
-        city (str): City name
-        from_cache (bool): True if data came from cache
+    Fore.CYAN: For labels
+    Fore.WHITE: For values
+    Fore.YELLOW: For cache indicator
+    Style.RESET_ALL: Reset color to default
     """
     
-    # Add indicator if data is from cache
-    cache_msg = " (from cache)" if from_cache else ""
+    # Yellow color for cache indicator
+    cache_msg = f" {Fore.YELLOW}(from cache){Style.RESET_ALL}" if from_cache else ""
     
-    click.echo(f"City: {data['name']}, {data['sys']['country']}{cache_msg}")
-    click.echo(f"Temp: {data['main']['temp']}°C")
-    click.echo(f"Feels like: {data['main']['feels_like']}°C")
-    click.echo(f"Weather: {data['weather'][0]['description']}")
-    click.echo(f"Humidity: {data['main']['humidity']}%")
-    click.echo(f"Wind: {data['wind']['speed']} km/h")
+    # Print with colors
+    click.echo(f"\n{Fore.CYAN}🌍 City: {Fore.WHITE}{data['name']}, {data['sys']['country']}{cache_msg}")
+    click.echo(f"{Fore.CYAN}🌡️  Temp: {Fore.WHITE}{data['main']['temp']}°C")
+    click.echo(f"{Fore.CYAN}🌡️  Feels like: {Fore.WHITE}{data['main']['feels_like']}°C")
+    click.echo(f"{Fore.CYAN}☁️  Weather: {Fore.WHITE}{data['weather'][0]['description'].title()}")
+    click.echo(f"{Fore.CYAN}💧 Humidity: {Fore.WHITE}{data['main']['humidity']}%")
+    click.echo(f"{Fore.CYAN}💨 Wind: {Fore.WHITE}{data['wind']['speed']} km/h\n")
 
-#=======================================================
+# ============================================
 # ENTRY POINT
-#=======================================================
+# ============================================
 if __name__ == "__main__":
     get_weather()
