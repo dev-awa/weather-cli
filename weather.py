@@ -1,7 +1,7 @@
 import requests
 import os
-import sys
 from dotenv import load_dotenv
+import click
 
 #===============================================
 # LOAD ENVIRONMENT VARIABLES
@@ -13,56 +13,61 @@ load_dotenv()
 #===============================================
 API_KEY = os.getenv('API_KEY')
 
-#===============================================
-# VALIDATE API KEY
-#===============================================
-# Check if API_KEY exists, if not show error
 if not API_KEY:
     print("Error: API_KEY not found")
     exit(1)
 
 #===============================================
-# GET CITY FROM COMMAND LINE
+# CLI COMMAND WITH CLICK
 #===============================================
-# sys.args is a list of command line arguments
-# sys.argv[0] is the script name (weather.py)
-# sys.argv[1] is the first argument (city name)
-if len(sys.argv) > 1:
-    city = sys.argv[1] # Use city from command line
-else:
-    city = "Tehran"    # Default city if no argument
-
-#===============================================
-# BUILD URL WITH CITY
-#===============================================
-url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units=metric"
-
-#===============================================
-# SEND HTTP REQUEST TO API
-#===============================================
-try:
-    # requests.get() send a Get request to the URL
-    response = requests.get(url)
+# @click.command() mekes this function a CLI command
+# @click.option() adds command-line options
+# --city: city name (default: Tehran)
+# --units: metric or imperial (default: metric)
+@click.command()
+@click.option('--city', default='Tehran', help='City name to get weather for')
+@click.option('--units', default='metric', help='Units: metric or imperial')
+def get_weather(city, units):
+    """
+    Get current weather for a city.
     
-    # .json() parses the response from JSON to Python dictionary
-    data = response.json()
+    This function is called when the user runs the script.
+    It takes city and units as parameters from command line. 
+    """
+
+    #===========================================
+    # BUILD URL WITH PARAMETERS
+    #===========================================
+    url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={API_KEY}&units={units}"
     
     #===============================================
-    # CHECK RESPONSE STATUS
+    # SEND HTTP REQUEST TO API
     #===============================================
-    # 200 means success
-    if response.status_code == 200:
-        # Display weather data from the response
-        print(f"City: {data['name']}, {data['sys']['country']}")
-        print(f"Temp: {data['main']['temp']}°C")
-        print(f"Feels like: {data['main']['feels_like']}°C")
-        print(f"Weather: {data['weather'][0]['description']}")
-        print(f"Humidity: {data['main']['humidity']}%")
-        print(f"Wind: {data['wind']['speed']} km/h")
-    else:
-        # Show error message from API
-        print(f"Error: {data.get('message', 'Unknown error')}")
+    try:
+        response = requests.get(url)
+        data = response.json()
+    
+        #===============================================
+        # CHECK RESPONSE STATUS
+        #===============================================
+        if response.status_code == 200:
+            # Display weather data
+            # click.echo() is like print() but works better with CLI
+            click.echo(f"City: {data['name']}, {data['sys']['country']}")
+            click.echo(f"Temp: {data['main']['temp']}°C")
+            click.echo(f"Feels like: {data['main']['feels_like']}°C")
+            click.echo(f"Weather: {data['weather'][0]['description']}")
+            click.echo(f"Humidity: {data['main']['humidity']}%")
+            click.echo(f"Wind: {data['wind']['speed']} km/h")
+        else:
+            click.echo(f"Error: {data.get('message', 'Unknown error')}")
 
-except Exception as e:
-    # Catch any connection errors
-    print(f"Connection error: {e}")
+    except Exception as e:
+        print(f"Connection error: {e}")
+
+#=======================================================
+# ENTRY POINT
+#=======================================================
+# This runs the get_weather() function when script is executed
+if __name__ == "__main__":
+    get_weather()
